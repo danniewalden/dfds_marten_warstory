@@ -5,6 +5,9 @@ using Marten.Events.Projections;
 
 namespace Domain.Policies;
 
+/// <summary>
+/// A policy making sure no course is over booked
+/// </summary>
 public class OverBookedCoursePolicy : IProjection
 {
 	public void Apply(IDocumentOperations operations, IReadOnlyList<StreamAction> streams) => throw new NotImplementedException();
