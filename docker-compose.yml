@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: martenpresentation
+      POSTGRES_PASSWORD: martenpresentation
+      POSTGRES_DB: martenpresentation
+    ports:
+      - "5432:5432" # Maps port 5432 on the host to port 5432 in the container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
