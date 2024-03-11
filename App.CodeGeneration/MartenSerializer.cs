@@ -6,7 +6,7 @@ namespace App;
 
 public static class MartenSerializer
 {
-	public static ISerializer Instance => new JsonNetSerializer()
+	public static ISerializer Instance => new JsonNetSerializer
 	{
 		EnumStorage = EnumStorage.AsString,
 		Casing = Casing.CamelCase,

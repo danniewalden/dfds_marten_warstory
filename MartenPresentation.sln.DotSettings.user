@@ -13,5 +13,6 @@
     &lt;TestId&gt;xUnit::EC5980A9-8A1F-4AFC-8E1C-AC23B6CEECD4::net8.0::MartenPresentation.Tests.EventSourcingTests.Ost&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::EC5980A9-8A1F-4AFC-8E1C-AC23B6CEECD4::net8.0::MartenPresentation.Tests.EventSourcingTests.Projections&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;xUnit::EC5980A9-8A1F-4AFC-8E1C-AC23B6CEECD4::net8.0::MartenPresentation.Tests.EventSourcingTests.RerunProjection&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::EC5980A9-8A1F-4AFC-8E1C-AC23B6CEECD4::net8.0::MartenPresentation.Tests.EventSourcingTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

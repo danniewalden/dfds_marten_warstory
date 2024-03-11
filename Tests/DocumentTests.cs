@@ -16,16 +16,18 @@ public class DocumentTests(ITestOutputHelper output)
 	///  Default is setup to automatically apply changes needed to the database. (Not recommended for production)
 	/// </summary>
 	[Fact]
-	public async Task Simplest_Setup()
+	public async Task Simplest_Setup_With_Aggregate_Roundtrip()
 	{
 		const string orderId = "1";
 
 		// the following line is all that is _required_ to get a working DocumentStore
-		await using var store = DocumentStore.For(_ => { _.Connection(Constants.Connectionstring); });
+		// it is not recommended for production use, as it will automatically apply changes to the database
+		// Concurrency is not handled by default
+		// Code generation is done at runtime (on-demand)
+		await using var store = DocumentStore.For(options => { options.Connection(Constants.Connectionstring); });
 
-		// create 2 sessions (unit of works) to ensure is stored and fetched correctly without caching
+		// create a session to interact with the database
 		await using var insertingSession = store.LightweightSession();
-		await using var fetchingSession = store.LightweightSession();
 
 		// add an order to the database
 		var order = new OrderRecord(orderId, "test");
@@ -33,10 +35,16 @@ public class DocumentTests(ITestOutputHelper output)
 		await insertingSession.SaveChangesAsync();
 
 		// retrieve the order from the database and assert it is the same as the one we added
+		await using var fetchingSession = store.LightweightSession();
 		var fetchedOrder = await fetchingSession.LoadAsync<OrderRecord>(orderId);
 		fetchedOrder.Should().BeEquivalentTo(order);
 	}
 
+	/// <summary>
+	///  Executes the source code generation tool to generate source code for better runtime performance in the DOTNET application.
+	///  This is usually done in the CI/CD pipeline. When working locally, this is best of done in runtime
+	/// Once this test has run, the source code will be generated in the App.CodeGeneration/Internal/Generated folder
+	/// </summary>
 	[Fact]
 	public void Pre_Generate_Source_Code_For_Better_Runtime_Performance()
 	{
@@ -70,13 +78,16 @@ public class DocumentTests(ITestOutputHelper output)
 		process.ExitCode.Should().Be(0);
 	}
 
+	/// <summary>
+	/// Plain insertion of an aggregate
+	/// </summary>
 	[Fact]
 	public async Task Add_new_order()
 	{
 		var order = Order.Create("test");
 
-		var store = await CreateStoreAndInitializeDatabase();
-		var session = store.LightweightSession();
+		await using var store = await CreateStoreAndInitializeDatabase();
+		await using var session = store.LightweightSession();
 
 		session.Store(order);
 		await session.SaveChangesAsync();
@@ -95,6 +106,41 @@ public class DocumentTests(ITestOutputHelper output)
 
 		await using var session2 = store.LightweightSession();
 		session2.Load<Order>(order.Id).Should().BeEquivalentTo(order);
+	}
+	
+	[Fact]
+	public async Task Linq_to_SQL()
+	{
+		var order = Order.Create("test");
+
+		await using var store = await CreateStoreAndInitializeDatabase();
+		await using var session = store.LightweightSession();
+
+		session.Store(order);
+		await session.SaveChangesAsync();
+
+		await using var session2 = store.LightweightSession();
+		var fetchedOrder = await session2.Query<Order>().Where(x => x.Name == "test").SingleOrDefaultAsync();
+		fetchedOrder.Should().BeEquivalentTo(order);
+	}
+	
+	[Fact]
+	public async Task Custom_SQL_Query()
+	{
+		var order1 = new OrderRecord("1", "test");
+		var order2 = new OrderRecord("2", "foo");
+
+		await using var store = await CreateStoreAndInitializeDatabase();
+		await using var actSession = store.LightweightSession();
+
+		actSession.Store(order1, order2);
+		await actSession.SaveChangesAsync();
+
+		await using var session = store.LightweightSession();
+		
+		// use postgres' JSON capabilities to query the document we want
+		var orders = await session.QueryAsync<OrderRecord>("SELECT data FROM public.mt_doc_orderrecord WHERE data ->> 'name' = 'test'");
+		orders.Should().HaveCount(1).And.ContainEquivalentOf(order1);
 	}
 
 	[Fact]
@@ -132,9 +178,13 @@ public class DocumentTests(ITestOutputHelper output)
 		await session.SaveChangesAsync();
 	}
 
+	/// <summary>
+	/// When refcatoring (ie. new namespaces or renamed classes) it is possible to add an alias to the document to avoid breaking changes in the database
+	/// </summary>
 	[Fact]
 	public async Task Adding_alias_to_Renamed_Class_Used_as_a_document()
 	{
+		// add the "deprecated" class to the database
 		var oldOptions = Constants.DefaultOptions;
 		oldOptions.Schema.For<Order>();
 
@@ -147,6 +197,7 @@ public class DocumentTests(ITestOutputHelper output)
 		session.Store(oldOrder);
 		await session.SaveChangesAsync();
 
+		// load the "deprecated" class from the database into the new class (v2)
 		var newOptions = Constants.DefaultOptions;
 		newOptions.Schema.For<OrderV2>().DocumentAlias("order");
 
@@ -158,6 +209,9 @@ public class DocumentTests(ITestOutputHelper output)
 		newOrder.Name.Should().Be(oldOrder.Name);
 	}
 
+	/// <summary>
+	/// Marten supports setting metadata for documents (ie. from Open Telemetry) and audits
+	/// </summary>
 	[Fact]
 	public async Task Setting_Metadata_for_document()
 	{
@@ -182,6 +236,9 @@ public class DocumentTests(ITestOutputHelper output)
 	[Fact]
 	public async Task Optimistic_Concurrency_checks()
 	{
+		// newest version of Marten also supports optimistic concurrency checks by allowing clients to send the version of the document they have
+		// this simple example just shows the basic usage of optimistic concurrency checks, making sure the document has not been changed since it was loaded
+		
 		var store = await CreateStoreAndInitializeDatabase();
 
 		await using var arrangeSession = store.LightweightSession();
@@ -207,6 +264,7 @@ public class DocumentTests(ITestOutputHelper output)
 		await act.Should().ThrowAsync<ConcurrencyException>();
 	}
 
+	#region Helpers
 	private static async Task<DocumentStore> CreateStoreAndInitializeDatabase(StoreOptions? options = null)
 	{
 		var store = new DocumentStore(options ?? Constants.DefaultOptions);
@@ -216,4 +274,5 @@ public class DocumentTests(ITestOutputHelper output)
 		await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
 		return store;
 	}
+	#endregion
 }

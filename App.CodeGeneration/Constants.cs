@@ -22,6 +22,7 @@ public static class Constants
 				p.Metadata.CausationId.Enabled = true;
 				p.Metadata.CorrelationId.Enabled = true;
 			});
+			
 			return options;
 		}
 	}
