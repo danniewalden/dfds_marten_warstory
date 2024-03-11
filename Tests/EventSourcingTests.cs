@@ -1,9 +1,11 @@
 using App;
 using Domain.EventSourcing;
+using Domain.Policies;
+using Domain.ViewModel;
 using Marten;
 using Marten.Events.Projections;
-using MartenPresentation.Tests.Policies;
-using MartenPresentation.Tests.ViewModel;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace MartenPresentation.Tests;
 
@@ -61,7 +63,7 @@ public class EventSourcingTests
 		await daemon.StartAllAsync();
 
 		var session = store.LightweightSession();
-		
+
 		// create the math-course that allows 3 students to attend
 		var mathCourseCreated = new CourseCreated(Guid.NewGuid(), "Math", 3);
 		session.Events.Append(mathCourseCreated.Id, mathCourseCreated);
@@ -75,26 +77,26 @@ public class EventSourcingTests
 		AddNewStudentAttendingCourse(session, mathCourseCreated.Id);
 		AddNewStudentAttendingCourse(session, physicsCourseCreated.Id);
 		AddNewStudentAttendingCourse(session, mathCourseCreated.Id);
-		
+
 		// add a student not attending any courses
 		var student5 = AddNewStudent(session);
 
 		// add everything to the database
-		await session.SaveChangesAsync(); 
+		await session.SaveChangesAsync();
 
 		// take a look at the viewmodels in the database now..
 		var mathCourseViewModel = await session.LoadAsync<CourseViewModel>(mathCourseCreated.Id) ?? throw new Exception("Course not found");
-		mathCourseViewModel.Attendees.Should().Be(3);
+		mathCourseViewModel.Attendees.Should().Be(0); // this is being updated "inline" with the async policy checking for overbooked courses
 
 		var physicsCourseViewModel = await session.LoadAsync<CourseViewModel>(physicsCourseCreated.Id) ?? throw new Exception("Course not found");
-		physicsCourseViewModel.Attendees.Should().Be(1);
+		physicsCourseViewModel.Attendees.Should().Be(0); // this is being updated "inline" with the async policy checking for overbooked courses
 
 		// now try to enroll a student in the math-course, which is already fully booked
 		var toBeMathStudent = await session.Events.AggregateStreamAsync<Student>(student5) ?? throw new Exception("Student not found");
 		toBeMathStudent.EnlistInCourse(mathCourseCreated.Id); // student is fine joining the course - but this will trigger the overbooked policy
-		
-		// until the policy is applied, the student is still enlisted in the course
-		toBeMathStudent.EnlistedCourses.Should().Contain(mathCourseCreated.Id); 
+
+		// until the asynchronous policy has been applied, the student is still enlisted in the course
+		toBeMathStudent.EnlistedCourses.Should().Contain(mathCourseCreated.Id);
 
 		session.Events.Append(toBeMathStudent.Id, toBeMathStudent.Events.ToArray());
 		await session.SaveChangesAsync();
@@ -103,10 +105,13 @@ public class EventSourcingTests
 		await Task.Delay(10000); // wait for the async projection to finish
 
 		var expectedMathStudentViewModel = await session.LoadAsync<StudentViewModel>(student5) ?? throw new Exception("Student not found");
-		expectedMathStudentViewModel.NumberOfEnlistedCourses.Should().Be(0);
+		expectedMathStudentViewModel.NumberOfEnlistedCourses.Should().Be(0); // even though the student tried to enlist in the math-course, the policy should have removed the student from the course
 
 		mathCourseViewModel = await session.LoadAsync<CourseViewModel>(mathCourseCreated.Id) ?? throw new Exception("Course not found");
 		mathCourseViewModel.Attendees.Should().Be(3); // the course should still be fully booked
+		
+		mathCourseViewModel = await session.LoadAsync<CourseViewModel>(physicsCourseViewModel.Id) ?? throw new Exception("Course not found");
+		mathCourseViewModel.Attendees.Should().Be(1); 
 
 		await daemon.StopAllAsync();
 	}

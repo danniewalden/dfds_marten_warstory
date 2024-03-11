@@ -1,6 +1,9 @@
-﻿using Domain;
-using Domain.DocumentStore;
+﻿using Domain.DocumentStore;
+using Domain.EventSourcing;
+using Domain.Policies;
+using Domain.ViewModel;
 using Marten;
+using Marten.Events.Projections;
 using Microsoft.Extensions.Hosting;
 using Oakton;
 
@@ -19,6 +22,13 @@ public static class Program
 		{
 			var options = Constants.DefaultOptions;
 			options.Schema.For<Order>();
+			
+			options.Projections.Add(new CourseViewModelProjection(), ProjectionLifecycle.Inline);
+			options.Projections.Add(new StudentViewmodelProjection(), ProjectionLifecycle.Inline);
+
+			// add a policy for handling overbooked courses (async means it's applied after the transaction is committed)
+			options.Projections.Add(new OverBookedCoursePolicy(), ProjectionLifecycle.Async);
+
 			return options;
 		});
 	}).ApplyOaktonExtensions();

@@ -3,7 +3,7 @@ using Marten;
 using Marten.Events;
 using Marten.Events.Projections;
 
-namespace MartenPresentation.Tests.Policies;
+namespace Domain.Policies;
 
 public class OverBookedCoursePolicy : IProjection
 {
@@ -21,7 +21,7 @@ public class OverBookedCoursePolicy : IProjection
 					{
 						var session = operations.DocumentStore.LightweightSession();
 						var course = await session.Events.AggregateStreamAsync<Course>(enlisted.CourseId, token: cancellation) ?? throw new Exception("Course not found");
-						course.EnrollStudent(enlisted.Id);
+						course.EnlistStudent(enlisted.Id);
 						
 						session.Events.Append(course.Id, course.Events.ToArray());
 						await session.SaveChangesAsync(cancellation);

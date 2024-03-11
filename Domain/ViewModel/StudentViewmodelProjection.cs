@@ -1,7 +1,7 @@
 using Domain.EventSourcing;
 using Marten.Events.Aggregation;
 
-namespace MartenPresentation.Tests.ViewModel;
+namespace Domain.ViewModel;
 
 public class StudentViewmodelProjection : SingleStreamProjection<StudentViewModel>
 {

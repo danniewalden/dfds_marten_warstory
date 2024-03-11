@@ -76,6 +76,9 @@ public class DocumentTests(ITestOutputHelper output)
 		}
 
 		process.ExitCode.Should().Be(0);
+		
+		// Notice now how the projections' Create & Apply methods have many references (from the generated code)
+		// Notice now how there is generated code for the SQL integration to Martens Routines in postgres 
 	}
 
 	/// <summary>
