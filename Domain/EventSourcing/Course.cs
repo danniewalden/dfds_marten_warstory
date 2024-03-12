@@ -8,7 +8,7 @@ public class Course : AggregateRoot
 	
 	// The command for enlisting a student in a course is responsible for enforcing the business rule that a course cannot be overbooked.
 	// If needed, it can also apply the state directly, using the Apply method - but the important thing here is, the events are raised.
-	public void EnlistStudent(Guid enlistedStudentId)
+	public void EnlistStudent(Guid enlistedStudentId, string enlistedStudentName)
 	{
 		if (MaxAttendees <= CurrentAttendees)
 		{
@@ -16,7 +16,7 @@ public class Course : AggregateRoot
 			return;
 		}
 
-		var studentEnlistedInCourse = new StudentAddedToCourse(enlistedStudentId, Id);
+		var studentEnlistedInCourse = new StudentEnlisted(enlistedStudentId, Id, enlistedStudentName);
 		Raise(studentEnlistedInCourse);
 		Apply(studentEnlistedInCourse);
 	}
@@ -33,7 +33,7 @@ public class Course : AggregateRoot
 	}
 
 	// invoked by marten when applying the events from the event store 
-	private void Apply(StudentAddedToCourse _)
+	private void Apply(StudentEnlisted _)
 	{
 		CurrentAttendees++;
 	}
@@ -43,4 +43,4 @@ public record CourseCreated(Guid Id, string Name, uint MaxAttendees);
 
 public record CourseOverbooked(Guid Id, Guid StudentId);
 
-public record StudentAddedToCourse(Guid Id, Guid StudentId);
+public record StudentEnlisted(Guid Id, Guid StudentId, string StudentName);

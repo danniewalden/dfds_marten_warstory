@@ -11,6 +11,7 @@ public static class MartenSerializer
 		EnumStorage = EnumStorage.AsString,
 		Casing = Casing.CamelCase,
 		NonPublicMembersStorage = NonPublicMembersStorage.NonPublicConstructor,
+		CollectionStorage = CollectionStorage.AsArray,
 	};
 	
 	// public static ISerializer Instance => new SystemTextJsonSerializer

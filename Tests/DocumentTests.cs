@@ -8,6 +8,7 @@ using Xunit.Abstractions;
 
 namespace MartenPresentation.Tests;
 
+[Trait("Category", "Document Tests")]
 public class DocumentTests(ITestOutputHelper output)
 {
 	/// <summary>
@@ -272,8 +273,7 @@ public class DocumentTests(ITestOutputHelper output)
 	{
 		var store = new DocumentStore(options ?? Constants.DefaultOptions);
 
-		await store.Advanced.Clean.CompletelyRemoveAsync(typeof(Order));
-		await store.Advanced.Clean.CompletelyRemoveAsync(typeof(OrderRecord));
+		await store.Advanced.Clean.DeleteAllDocumentsAsync();
 		await store.Storage.ApplyAllConfiguredChangesToDatabaseAsync();
 		return store;
 	}

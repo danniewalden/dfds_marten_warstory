@@ -12,6 +12,10 @@ public class OverBookedCoursePolicy : IProjection
 {
 	public void Apply(IDocumentOperations operations, IReadOnlyList<StreamAction> streams) => throw new NotImplementedException();
 
+	// This method is invoked all ALL events in the event store - manually filtering out the events we are interested in
+	// this would also be a good pattern to use to do some logging, or other cross cutting concerns.
+	// If you use Kafka or other message brokers, you can also use this pattern to publish events to other systems. 
+	// NOTICE: Remember to handle idempotency, if you are updating data in the database or publishing events to other systems.
 	public async Task ApplyAsync(IDocumentOperations operations, IReadOnlyList<StreamAction> streams, CancellationToken cancellation)
 	{
 		foreach (var stream in streams)	
@@ -24,7 +28,7 @@ public class OverBookedCoursePolicy : IProjection
 					{
 						var session = operations.DocumentStore.LightweightSession();
 						var course = await session.Events.AggregateStreamAsync<Course>(enlisted.CourseId, token: cancellation) ?? throw new Exception("Course not found");
-						course.EnlistStudent(enlisted.Id);
+						course.EnlistStudent(enlisted.Id, enlisted.Name);
 						
 						session.Events.Append(course.Id, course.Events.ToArray());
 						await session.SaveChangesAsync(cancellation);

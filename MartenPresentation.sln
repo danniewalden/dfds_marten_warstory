@@ -7,6 +7,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misc", "Misc", "{66120BF5-7EE6-44A4-9410-1C5C553AF6C4}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
+		Tests\bin\Debug\net8.0\migration.sql = Tests\bin\Debug\net8.0\migration.sql
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.CodeGeneration", "App.CodeGeneration\App.CodeGeneration.csproj", "{C8BEA4DF-45FD-40AD-8796-54AD55C60315}"
