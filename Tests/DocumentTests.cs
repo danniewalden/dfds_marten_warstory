@@ -49,15 +49,20 @@ public class DocumentTests(ITestOutputHelper output)
 	[Fact]
 	public void Pre_Generate_Source_Code_For_Better_Runtime_Performance()
 	{
+		var workingDirectory = Path.Combine(new DirectoryInfo(Directory.GetCurrentDirectory()).Parent?.Parent?.Parent?.Parent?.FullName ?? string.Empty, "App.CodeGeneration");
+		
+		// clean the previous generated code
+		Directory.Delete(Path.Combine(workingDirectory, "Internal", "Generated"), true);
+		
 		var startInfo = new ProcessStartInfo
 		{
-			WorkingDirectory = Path.Combine(new DirectoryInfo(Directory.GetCurrentDirectory()).Parent?.Parent?.Parent?.Parent?.FullName ?? string.Empty, "App.CodeGeneration"),
+			WorkingDirectory = workingDirectory,
 			FileName = "dotnet",
 			Arguments = "run -- codegen write",
 			RedirectStandardOutput = true, // To capture the output
 			RedirectStandardError = true, // To capture any errors
 			UseShellExecute = false, // Required for redirections
-			CreateNoWindow = true // Prevents the window from showing up
+			CreateNoWindow = true, // Prevents the window from showing up
 		};
 
 		using var process = new Process();
